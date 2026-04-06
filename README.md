@@ -1,6 +1,3 @@
-非常抱歉，我之前误解了您的需求。您需要的是**直接用于 GitHub `README.md` 文件的 Markdown 源码（Raw Markdown）**，以便您可以直接复制粘贴。
-
-下面为您提供完整的 Markdown 代码，您可以直接点击右上角的“复制”按钮，将其粘贴到您的 `README.md` 文件中。
 
 ```markdown
 # MiteOmicsDB: Standardized Genome Annotation Pipeline
