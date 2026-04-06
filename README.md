@@ -1,5 +1,3 @@
-
-```markdown
 # MiteOmicsDB: Standardized Genome Annotation Pipeline
 
 > ***By [Your Name]***
@@ -54,7 +52,6 @@ fastp -i raw_reads_1.fq -I raw_reads_2.fq \
       -o clean_reads_1.fq -O clean_reads_2.fq \
       --thread 16 \
       -h fastp_report.html
-```
 
 #### 2. Genome assessment (BUSCO)
 
