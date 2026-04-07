@@ -1,14 +1,12 @@
-# MiteOmicsDB: Standardized Genome Annotation Pipeline
+# Genome annotation pipeline
 
-> ***By [Your Name]***
+> ***By Haitao Zhou***
 > 
-> ***Institution: [Your Institution]***
+> ***Institution: School of Basic Medical Science, Wannan Medical University，Wuhu，China***
 > 
-> ***Email: [Your Email]***
+> ***Email: zhouhaitao0721@gmail.com***
 >  
-> ***Cite:***
->  
-> ***[Your Name], [Co-authors], MiteOmicsDB: a comprehensive functional and evolutionary genomics database dedicated to mite research, [Journal Name], [Year], [Volume/Issue], [Pages], [DOI].***
+>***Contact us: http://www.wnmc-bioinfo.com/team/***
 
 ------
 
@@ -24,20 +22,22 @@
 6. BRAKER3 (https://github.com/Gaius-Augustus/BRAKER)
    + AUGUSTUS (https://github.com/Gaius-Augustus/Augustus)
    + GeneMark-ETP (https://github.com/gatech-genemark/GeneMark-ETP)
+   + SAMTOOLS (http://www.htslib.org/)
+   + BAMTOOLS (https://github.com/pezmaster31/bamtools)
+   + DIAMOND (http://github.com/bbuchfink/diamond/)
+   + ProtHint (https://github.com/gatech-genemark/ProtHint)
 7. Infernal (http://eddylab.org/infernal/)
 8. DIAMOND (http://github.com/bbuchfink/diamond/)
 9. eggNOG-mapper v2.1.13 (https://github.com/eggnogdb/eggnog-mapper)
 10. HMMER (http://hmmer.org/)
-11. AlphaFold3 (https://github.com/google-deepmind/alphafold3)
-12. Algpred2 (https://webs.iiitd.edu.in/raghava/algpred2/)
-13. MCScanX (https://github.com/wyp1125/MCScanX)
 
 #### 2. DataSet
 
 1. RNA-seq (https://www.ncbi.nlm.nih.gov/sra/)
-2. Homology protein (Swiss-Prot / Arthropoda from OrthoDB)
-3. Rfam database (https://rfam.org/)
-4. UniProtKB validated allergens (https://www.uniprot.org/)
+2. Rfam database (https://rfam.org/)
+3. UniProt (https://www.uniprot.org/)
+4. genome (https://www.ncbi.nlm.nih.gov/datasets/genome/)
+5. Homology protein (https://bioinf.uni-greifswald.de/bioinf/partitioned_odb11/)
 
 ------
 
