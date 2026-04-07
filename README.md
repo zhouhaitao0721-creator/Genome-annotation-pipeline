@@ -41,10 +41,6 @@
 
 ------
 
-
-
-------
-
 ### 2. Data Acquisition and Genome Assessment
 
 #### 1. Genome assessment (BUSCO)
