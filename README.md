@@ -156,9 +156,9 @@ python gff_rename.py braker_out/braker.gff3 mite_species > gene_predictions.gff3
 - Rfam covariance models (Rfam.cm)
 
 ```shell
-cmsearch --cpu 28 --rfam --cut_ga --nohmmonly \
-    --tblout ncRNA_predictions.tblout \
-    Rfam.cm genome.fa > cmsearch.log
+cmscan -Z *  --cpu 28 --rfam --cut_ga --nohmmonly --fmt 2 \
+    --tblout ncRNA_predictions.tblout -o ncrna.result \
+    --clanin Rfam.clanin Rfam.cm genome.fa
 ```
 - ncRNA_predictions.tblout
 
@@ -168,8 +168,8 @@ cmsearch --cpu 28 --rfam --cut_ga --nohmmonly \
 
 #### 1. Sequence Homology (Swiss-Prot)
 ```shell
-diamond blastp -q braker.aa \
-    -d swissprot_db \
+diamond blastp -q combined.sorted.pep.fa \
+    -d uniprot_sprot.fasta \
     --evalue 1e-5 \
     --threads 28 \
     --outfmt 6 \
@@ -178,17 +178,14 @@ diamond blastp -q braker.aa \
 
 #### 2. Gene Ontology (eggNOG-mapper)
 ```shell
-emapper.py -i braker.aa \
-    --output eggnog_results \
-    -m diamond \
-    --cpu 28
+combined.sorted.pep.fa
 ```
 
 #### 3. Conserved Domains (HMMER)
 ```shell
 hmmscan --cpu 28 \
     --domtblout pfam_domains.domtblout \
-    Pfam-A.hmm braker.aa
+    Pfam-A.hmm combined.sorted.pep.fa
 ```
 
 #### 4. Metabolic Pathways
@@ -196,26 +193,6 @@ Analyzed via the **KAAS (KEGG Automatic Annotation Server)** web portal utilizin
 
 ------
 
-### 7. Allergen Module & Structural Modeling
 
-#### 1. Allergen Screening
-- UniProtKB_Allergens.fa
-- braker.aa
-
-```shell
-# Homology screening against UniProtKB
-diamond blastp -q braker.aa -d UniProtKB_Allergens -e 1e-5 -o putative_allergens.tsv
-```
-*Note: Candidate sequences are further evaluated via the Algpred2 framework (integrating BLAST, MERCI motif recognition, and machine learning classifiers).*
-
-#### 2. 3D Structure Modeling
-Modeled using AlphaFold3 and visualized via the Mol* plugin integrated into MiteOmicsDB.
-
-```shell
-# AlphaFold3 command for modeling candidates (e.g., Dfar004999)
-python3 run_alphafold.py \
-    --fasta_paths=candidate_allergens.fa \
-    --output_dir=alphafold_results \
-    --model_preset=monomer
 ```
 ```
