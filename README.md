@@ -41,22 +41,24 @@
 
 ------
 
-### 2. Data Acquisition and Quality Assessment
+根据你提供的三个 Shell 脚本内容，我帮你对原有的 Markdown 文档进行了重新排序和细节微调。
 
-#### 1. RNA-seq Quality Control
+**主要调整逻辑如下：**
+1. **顺序调整：** 在你的 `transcriptome_completed.sh` 脚本中，Hisat2 是基于掩膜后的基因组（`*--*.fa.masked`）来构建索引的。因此，**必须将“重复序列注释与基因组掩膜”步骤移至“转录组组装”之前**。
+2. **命令与参数同步：** * 将重复序列注释引擎调整为脚本中使用的 `rmblast`，并加入了 `famdb.py` 提取 `Arachnida` 的步骤。
+   * 转录组部分引入了基于 `rnanamescompleted.txt` 的批量循环处理（fastp 和 hisat2），以及多 BAM 文件的合并（samtools merge）。
+   * BRAKER 预测的参数调整为匹配你脚本中的 32 线程，并按照脚本实际情况更新了输入文件路径。
 
-- raw_reads_1.fq, raw_reads_2.fq
+以下是修改后的 Markdown 流程文档：
 
-```shell
-fastp -i raw_reads_1.fq -I raw_reads_2.fq \
-      -o clean_reads_1.fq -O clean_reads_2.fq \
-      --thread 16 \
-      -h fastp_report.html
+------
 
-#### 2. Genome assessment (BUSCO)
+### 2. Data Acquisition and Genome Assessment
 
-- genome.fa
-- arachnida_odb10
+#### 1. Genome assessment (BUSCO)
+
+- `genome.fa`
+- `arachnida_odb10`
 
 ```shell
 busco --cpu 28 \
@@ -65,90 +67,113 @@ busco --cpu 28 \
     -i genome.fa \
     -o busco_output \
     --offline
-```
-
-```bash
+    
 cat busco_output/short_summary.specific.arachnida_odb10.busco_output.txt
 ```
 
 ------
 
-### 3. Transcriptome Assembly (Expression Evidence)
+### 3. Repeat Annotation and Genome Mask
 
-#### HISAT2 & StringTie2
-
-- genome.fa
-- clean RNA-seq reads
-
-Build genome index:
-```shell
-hisat2-build -p 28 genome.fa genome_index
-```
-
-Mapping to genome:
-```shell
-hisat2 -p 28 -x genome_index --dta -1 clean_reads_1.fq -2 clean_reads_2.fq | samtools sort -@ 28 -o mapped_reads.bam
-```
-
-GTF assembly:
-```shell
-stringtie -p 28 -o transcriptome_assembly.gtf mapped_reads.bam
-```
-- mapped_reads.bam
-- transcriptome_assembly.gtf
-
-------
-
-### 4. Repeat annotation and genome mask
+*Note: Genome masking is performed before transcriptome alignment to prevent reads from mapping to repetitive regions.*
 
 #### RepeatModeler v2 & RepeatMasker
 
-- genome.fa
+- `genome.fa` ( generated via `genome_clean.py`)
 
-Building reference repeat database:
-```bash
-mkdir 01_RepeatModeler
-BuildDatabase -name MiteDB -engine ncbi ../genome.fa > BuildDatabase.log
-RepeatModeler -engine ncbi -pa 28 -database MiteDB -LTRStruct > RepeatModeler.log
-cd ../
-```
-
-Running RepeatMasker for genome masking:
-```bash
-mkdir 02_RepeatMasker
-# Combine custom models with known arthropod consensus sequences
-cat 01_RepeatModeler/MiteDB-families.fa Arthropoda_consensus.fa > repeat_db.fa
-```
-
-Run RepeatMasker:
+**Building reference repeat database:**
 ```shell
-RepeatMasker -xsmall -gff -html -lib repeat_db.fa -pa 28 genome.fa > RepeatMasker.log
+# Extract Arachnida specific repeat families
+/data/home/zhouhaitao/RepeatMasker/famdb.py -i /data/home/zhouhaitao/RepeatMasker/Libraries/famdb families -f embl -a -d Arachnida > Arachnida_ad.embl
+/data/home/zhouhaitao/RepeatMasker/util/buildRMLibFromEMBL.pl Arachnida_ad.embl > Arachnida_ad.fa
+
+# Build de novo repeat library
+/data/home/zhouhaitao/RepeatModeler-2.0.5/BuildDatabase -name GDB -engine rmblast genome.fa
+/data/home/zhouhaitao/RepeatModeler-2.0.5/RepeatModeler -engine rmblast -threads 32 -database GDB
+
+# Combine custom models with Arachnida consensus sequences
+cat GDB-families.fa Arachnida_ad.fa > repeat_db.fa
 ```
-- genome.fa.masked
+
+**Running RepeatMasker for genome masking:**
+```shell
+/data/home/zhouhaitao/RepeatMasker/RepeatMasker -xsmall -gff -html -lib repeat_db.fa -pa 32 genome.fa -engine rmblast
+```
+- Outputs: `genome.fa.masked`
+
+------
+
+### 4. Transcriptome Assembly (Expression Evidence)
+
+#### 1. RNA-seq Quality Control (fastp)
+
+- Raw RNA-seq reads
+- Sample list: `rnanamescompleted.txt`
+
+```shell
+# Batch process raw reads
+for x in $(cat rnanamescompleted.txt); do
+    fastp -i ${x}_1.fastq -I ${x}_2.fastq \
+          -o ${x}_1.clean.fastq -O ${x}_2.clean.fastq \
+          -w 64
+done
+```
+
+#### 2. HISAT2 & StringTie
+
+- Masked genome (`genome.fa.masked`)
+- Clean RNA-seq reads
+
+**Build genome index:**
+```shell
+hisat2-build -p 64 genome.fa.masked genome_index
+```
+
+**Mapping to genome (Batch running):**
+```shell
+for x in $(cat rnanamescompleted.txt); do
+    hisat2 -p 40 -x genome_index --dta -1 ./${x}_1.clean.fastq -2 ./${x}_2.clean.fastq | samtools sort -@ 64 -o ${x}.bam
+done
+```
+
+**GTF assembly and merging:**
+```shell
+# Merge all BAM files for global transcriptome assembly
+samtools merge -@ 64 merged.bam *.bam
+stringtie -p 64 -o stringtie.gtf merged.bam
+
+# Run stringtie for individual BAM files (Optional, for sample-specific transcripts)
+for i in $(cat rnanamescompleted.txt); do 
+    stringtie -p 64 -o ${i}.stringtie.gtf ${i}.bam
+done
+```
+- Outputs: `merged.bam`, `stringtie.gtf`
 
 ------
 
 ### 5. Gene prediction
 
-#### 1. Protein-coding Gene Prediction (BRAKER3)
+#### Protein-coding Gene Prediction (BRAKER)
 
-- masked genome (genome.fa.masked)
-- homology protein (Arthropoda.fa)
-- mapped_reads.bam
+- Masked genome (`genome.fa.masked`)
+- Homology protein (`/data/home/zhouhaitao/database/Arthropoda.fa`)
+- Expression evidence (`merged.bam`) 
+
+*Note: The script below integrates both protein and RNA-seq evidence for optimal BRAKER3 performance.*
 
 ```shell
-braker.pl --genome=genome.fa.masked \
+/data/home/zhouhaitao/software/BRAKER/scripts/braker.pl \
+    --genome=genome.fa.masked \
     --species=mite_species \
-    --prot_seq=Arthropoda.fa \
-    --bam=mapped_reads.bam \
-    --threads 30 \
-    --gff3 \
-    --workingdir=braker_out
+    --prot_seq=/data/home/zhouhaitao/database/Arthropoda.fa \
+    --bam=merged.bam \
+    --threads 32 \
+    --gff3 
 
-python gff_rename.py braker_out/braker.gff3 mite_species > gene_predictions.gff3
+# Rename sequence IDs in GFF3
+python tackle_braker_result.py braker.aa，braker.gff3，braker.codingseq
 ```
-- gene_predictions.gff3
-- braker.aa (Translated peptides)
+- Outputs: combined.sorted.pep.fa longest_isoforms.cds.fa updated.gff3
 
 #### 2. Non-coding RNA Characterization (Infernal)
 
